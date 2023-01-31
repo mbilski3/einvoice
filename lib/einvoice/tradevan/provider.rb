@@ -18,13 +18,9 @@ module Einvoice
         issue_data.from_json(payload.to_json)
 
         if issue_data.valid?
-          response = connection(
-            ssl: {
-              verify: false
-            }
-          ).post do |request|
-            request.url endpoint_url || endpoint + "/DEFAULTAPI/post/issue"
-            request.params[:v] = encrypted_params(issueData: issue_data.payload)
+          response = connection.post do |request|
+            request.url endpoint_url + "/DEFAULTAPI/cbepost/issueLong"
+            request.params[:v] = merged_params(issueData: issue_data.payload)
           end.body
 
           Einvoice::Tradevan::Result.new(response)
@@ -38,13 +34,9 @@ module Einvoice
         void_data.from_json(payload.to_json)
 
         if void_data.valid?
-          response = connection(
-            ssl: {
-              verify: false
-            }
-          ).post do |request|
-            request.url endpoint_url || endpoint + "/DEFAULTAPI/post/cancel"
-            request.params[:v] = encrypted_params(voidData: void_data.payload)
+          response = connection.post do |request|
+            request.url endpoint_url + "/DEFAULTAPI/cbepost/cancelLong"
+            request.params[:v] = merged_params(voidData: void_data.payload)
           end.body
 
           Einvoice::Tradevan::Result.new(response)
@@ -54,91 +46,63 @@ module Einvoice
       end
 
       def search_invoice_by_member_id(payload, options = {})
-        response = connection(
-          ssl: {
-            verify: false
-          }
-        ).get do |request|
-          request.url endpoint_url || endpoint + "/DEFAULTAPI/get/searchInvoiceByMemberId"
-          request.params[:v] = encrypted_params(payload)
+        response = connection.get do |request|
+          request.url endpoint_url + "/DEFAULTAPI/get/searchInvoiceByMemberId"
+          request.params[:v] = merged_params(payload)
         end.body
 
         Einvoice::Tradevan::Result.new(response)
       end
 
       def search_invoice_detail(invoice_number)
-        response = connection(
-          ssl: {
-            verify: false
-          }
-        ).get do |request|
-          request.url endpoint_url || endpoint + "/DEFAULTAPI/get/searchInvoiceDetail"
-          request.params[:v] = encrypted_params(invoiceNumber: invoice_number)
+        response = connection.get do |request|
+          request.url endpoint_url + "/DEFAULTAPI/get/searchInvoiceDetail"
+          request.params[:v] = merged_params(invoiceNumber: invoice_number)
         end.body
 
         Einvoice::Tradevan::Result.new(response)
       end
 
       def search_invoice_by_transaction_number(payload, options = {})
-        response = connection(
-          ssl: {
-            verify: false
-          }
-        ).get do |request|
-          request.url endpoint_url || endpoint + "/DEFAULTAPI/get/searchInvoiceInfoByTransactionnumber"
-          request.params[:v] = encrypted_params(payload.slice(:companyUn, :orgId, :transactionNumber))
+        response = connection.get do |request|
+          request.url endpoint_url + "/DEFAULTAPI/get/searchInvoiceInfoByTransactionnumber"
+          request.params[:v] = merged_params(payload.slice(:companyUn, :orgId, :transactionNumber))
         end.body
 
         Einvoice::Tradevan::Result.new(response)
       end
 
       def send_card_info_to_cust(payload, options = {})
-        response = connection(
-          ssl: {
-            verify: false
-          }
-        ).get do |request|
-          request.url endpoint_url || endpoint + "/DEFAULTAPI/get/sendCardInfotoCust"
-          request.params[:v] = encrypted_params(payload)
+        response = connection.get do |request|
+          request.url endpoint_url + "/DEFAULTAPI/get/sendCardInfotoCust"
+          request.params[:v] = merged_params(payload)
         end.body
 
         Einvoice::Tradevan::Result.new(response)
       end
 
       def get_invoice_mark_info(payload, options = {})
-        response = connection(
-          ssl: {
-            verify: false
-          }
-        ).get do |request|
-          request.url endpoint_url || endpoint + "/DEFAULTAPI/get/getInvoiceMarkInfo"
-          request.params[:v] = encrypted_params(payload)
+        response = connection.get do |request|
+          request.url endpoint_url + "/DEFAULTAPI/get/getInvoiceMarkInfo"
+          request.params[:v] = merged_params(payload)
         end.body
 
         Einvoice::Tradevan::Result.new(response)
       end
 
       def get_donate_unit_list(companyUn, options = {})
-        response = connection(
-          ssl: {
-            verify: false
-          }
-        ).get do |request|
-          request.url endpoint_url || endpoint + "/DEFAULTAPI/get/getDonateUnitList"
-          request.params[:v] = encrypted_params(companyUn: companyUn)
+        response = connection.get do |request|
+          request.url endpoint_url + "/DEFAULTAPI/get/getDonateUnitList"
+          request.params[:v] = merged_params(companyUn: companyUn)
         end.body
 
         Einvoice::Tradevan::Result.new(response)
       end
 
       def get_invoice_content(payload, options = {})
-        response = connection(
-          ssl: {
-            verify: false
-          }
-        ).get do |request|
-          request.url endpoint_url || endpoint + "/DEFAULTAPI/get/getInvoiceContent"
-          request.params[:v] = encrypted_params(payload)
+        response = connection.get do |request|
+          request.url endpoint_url + "/DEFAULTAPI/get/getInvoiceContent"
+          request.params[:v] = merged_params(payload)
         end.body
 
         Einvoice::Tradevan::Result.new(response)
@@ -146,30 +110,8 @@ module Einvoice
 
       private
 
-      def encrypted_params(params)
-        encrypted_params = params.dup
-        encrypted_params.each do |key, value|
-          value = value.is_a?(Hash) ? value.to_json : value.to_s
-          encrypted_params[key] = encrypt(encryption_keys[:key1], value)
-        end
-
-        v = { acnt: client_id, acntp: client_secret }.merge(encrypted_params).to_json
-        encrypt(encryption_keys[:key2], v)
-      end
-
-      def encrypt(key, content)
-        cipher = OpenSSL::Cipher::AES.new(128, :CBC)
-        cipher.encrypt
-        cipher.key = key
-        cipher.iv = key
-        cipher.padding = 0
-
-        # padding with "\u0000"
-        q, m = content.bytesize.divmod(cipher.block_size)
-        content_bytes_with_padding = content.bytes.fill(0, content.bytesize..(cipher.block_size * (q + 1) - 1))
-        content = content_bytes_with_padding.pack('C*').force_encoding('utf-8') if m!= 0 || q == 0
-
-        Base64.strict_encode64(cipher.update(content) + cipher.final)
+      def merged_params(params)
+        JSON({ acnt: client_id, acntp: client_secret }.merge(params))
       end
     end
   end

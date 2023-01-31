@@ -29,10 +29,10 @@ module Einvoice
         validates :productCode, allow_blank: true, length: { maximum: 30 }
         validates :productName, presence: true, length: { maximum: 300 }
         validates :qty, presence: true, length: { maximum: 20 }
-        validates :price, presence: true, length: { maximum: 20 }
+        # validates :price, presence: true, length: { maximum: 20 }
         validates :tax, allow_blank: true, length: { maximum: 20 }
         validates :itemExclude, allow_blank: true, length: { maximum: 20 }
-        validates :itemTotal, allow_blank: true, length: { maximum: 20 }
+        # validates :itemTotal, allow_blank: true, length: { maximum: 20 }
         validates :taxType, allow_blank: true, length: { is: 1 }, inclusion: { in: %w(T O Z) }
         validates :description, allow_blank: true, length: { maximum: 300 }
       end
