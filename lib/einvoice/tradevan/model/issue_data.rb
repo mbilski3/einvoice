@@ -11,6 +11,7 @@ module Einvoice
           :allowanceIdentifier,
           :transactionNumber,
           :transactionDate,
+          :donate,
           :transactionTime,
           :total,
           :currency,
@@ -90,7 +91,7 @@ module Einvoice
 
         # Type I R G
         validates :transactionTime, presence: true, length: { is: 8 }, format: { with: /\A\d{2}\:\d{2}\:\d{2}\Z/ }, if: proc { %w(I R G).include?(self.type) }
-        validates :total, presence: true, length: { maximum: 20 }, total: true, if: proc { %w(I R G).include?(self.type) }
+        # validates :total, presence: true, length: { maximum: 20 }, total: true, if: proc { %w(I R G).include?(self.type) }
         validates :currency, presence: true, length: { maximum: 20 }, if: proc { %w(I R G).include?(self.type) }
         validates :carrierId, presence: true, length: { maximum: 64 }, if: proc { %w(I R G).include?(self.type) }
         validates :carrierIdHidden, presence: true, length: { maximum: 64 }, if: proc { %w(I R G).include?(self.type) }
